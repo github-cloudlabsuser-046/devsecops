@@ -11,7 +11,7 @@ param rgName string
 @minLength(3)
 @maxLength(7)
 @description('A unique environment suffix (max 6 characters, alphanumeric only).')
-param env string
+param suffix string
 
 @description('Set rg location')
 @allowed([
@@ -32,15 +32,15 @@ param rgLocation string
 
 // tags
 var rgTags = {
-  Product: '${rgName}${env}'
-
+  Product: '${rgName}${suffix}'
+  Environment: suffix
 }
 
 // resource groups
 ////////////////////////////////////////////////////////////////////////////////
 
 resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: '${rgName}${env}'
+  name: '${rgName}${suffix}'
   location: rgLocation
   tags: rgTags
 }

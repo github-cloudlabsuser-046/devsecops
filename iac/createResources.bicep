@@ -6,7 +6,7 @@ targetScope = 'resourceGroup'
 
 // common
 @minLength(3)
-@maxLength(7)
+@maxLength(6)
 @description('A unique environment suffix (max 6 characters, alphanumeric only).')
 param suffix string
 
@@ -288,7 +288,6 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
       value: 'https://${cdnprofile_imagesendpoint.properties.hostName}'
     }
   }
-
 
   // secret
   resource kv_secretUiCdnEndpoint 'secrets' = {
@@ -1218,21 +1217,6 @@ resource loadtestsvc 'Microsoft.LoadTestService/loadTests@2022-12-01' = {
 // application insights
 //
 
-// log analytics workspace
-resource loganalyticsworkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: logAnalyticsWorkspaceName
-  location: resourceLocation
-  tags: resourceTags
-  properties: {
-    publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Enabled'
-    sku: {
-      name: 'PerGB2018' // pay-as-you-go
-    }
-  }
-}
-
-
 //
 // portal dashboard
 //
@@ -1593,124 +1577,7 @@ resource cartsinternalapiaca 'Microsoft.App/containerApps@2022-06-01-preview' =
 // chaos studio
 //
 
-// target: kv
-resource chaoskvtarget 'Microsoft.Chaos/targets@2022-10-01-preview' = {
-  name: 'Microsoft-KeyVault'
-  location: resourceLocation
-  scope: kv
-  properties: {}
 
-  // capability: kv (deny access)
-  resource chaoskvcapability 'capabilities' = {
-    name: 'DenyAccess-1.0'
-  }
-}
-
-// chaos experiment: kv
-resource chaoskvexperiment 'Microsoft.Chaos/experiments@2022-10-01-preview' = {
-  name: chaosKvExperimentName
-  location: resourceLocation
-  tags: resourceTags
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    selectors: [
-      {
-        type: 'List'
-        id: chaosKvSelectorId
-        targets: [
-          {
-            id: chaoskvtarget.id
-            type: 'ChaosTarget'
-          }
-        ]
-      }
-    ]
-    startOnCreation: false
-    steps: [
-      {
-        name: 'step1'
-        branches: [
-          {
-            name: 'branch1'
-            actions: [
-              {
-                name: 'urn:csci:microsoft:keyVault:denyAccess/1.0'
-                type: 'continuous'
-                selectorId: chaosKvSelectorId
-                duration: 'PT5M'
-                parameters: []
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}
-
-// target: aks
-resource chaosakstarget 'Microsoft.Chaos/targets@2022-10-01-preview' = {
-  name: 'Microsoft-AzureKubernetesServiceChaosMesh'
-  location: resourceLocation
-  scope: aks
-  properties: {}
-
-  // capability: aks (pod failures)
-  resource chaosakscapability 'capabilities' = {
-    name: 'PodChaos-2.1'
-  }
-}
-
-// chaos experiment: aks (chaos mesh)
-resource chaosaksexperiment 'Microsoft.Chaos/experiments@2022-10-01-preview' = {
-  name: chaosAksExperimentName
-  location: resourceLocation
-  tags: resourceTags
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    selectors: [
-      {
-        type: 'List'
-        id: chaosAksSelectorId
-        targets: [
-          {
-            id: chaosakstarget.id
-            type: 'ChaosTarget'
-          }
-        ]
-      }
-    ]
-    startOnCreation: false
-    steps: [
-      {
-        name: 'step1'
-        branches: [
-          {
-            name: 'branch1'
-            actions: [
-              {
-                name: 'urn:csci:microsoft:azureKubernetesServiceChaosMesh:podChaos/2.1'
-                type: 'continuous'
-                selectorId: chaosAksSelectorId
-                duration: 'PT5M'
-                parameters: [
-                  {
-                    key: 'jsonSpec'
-                    value: '{\'action\':\'pod-failure\',\'mode\':\'all\',\'duration\':\'3s\',\'selector\':{\'namespaces\':[\'default\'],\'labelSelectors\':{\'app\':\'contoso-traders-products\'}}}'
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}
 
 // outputs
 ////////////////////////////////////////////////////////////////////////////////
