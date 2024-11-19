@@ -1,0 +1,90 @@
+name: update contoso traders app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      [
+        "src/ContosoTraders.Api.Carts/**",
+        "src/ContosoTraders.Api.Core/**",
+        "src/ContosoTraders.Api.Images/**",
+        "src/ContosoTraders.Api.Products/**",
+        "src/ContosoTraders.Ui.Website/**",
+      ]
+
+env:
+  # You can specify any location for `SUB_DEPLOYMENT_REGION`. It's the region where the deployment
+  # metadata will be stored, and not where the resource groups will be deployed.
+  ACR_NAME: contosotradersacr
+  AKS_CLUSTER_NAME: contoso-traders-aks
+  AKS_DNS_LABEL: contoso-traders-products
+  AKS_NODES_RESOURCE_GROUP_NAME: contoso-traders-aks-nodes-rg-<deployment-id>
+  AKS_SECRET_NAME_ACR_PASSWORD: contoso-traders-acr-password
+  AKS_SECRET_NAME_KV_ENDPOINT: contoso-traders-kv-endpoint
+  AKS_SECRET_NAME_MI_CLIENTID: contoso-traders-mi-clientid
+  CARTS_ACA_NAME: contoso-traders-carts
+  CARTS_ACR_REPOSITORY_NAME: contosotradersapicarts
+  CDN_PROFILE_NAME: contoso-traders-cdn
+  SUB_DEPLOYMENT_REGION: eastus2
+  KV_NAME: contosotraderskv
+  PRODUCTS_ACR_REPOSITORY_NAME: contosotradersapiproducts
+  PRODUCTS_DB_NAME: productsdb
+  PRODUCTS_DB_SERVER_NAME: contoso-traders-products
+  PRODUCTS_DB_USER_NAME: localadmin
+  PRODUCT_DETAILS_CONTAINER_NAME: product-details
+  PRODUCT_IMAGES_STORAGE_ACCOUNT_NAME: contosotradersimg
+  PRODUCT_LIST_CONTAINER_NAME: product-list
+  PRODUCTS_CDN_ENDPOINT_NAME: contoso-traders-images
+  RESOURCE_GROUP_NAME: contosotraders-<deployment-id>
+  STORAGE_ACCOUNT_NAME: contosotradersimg
+  UI_CDN_ENDPOINT_NAME: contoso-traders-ui2
+  UI_STORAGE_ACCOUNT_NAME: contosotradersui2
+  USER_ASSIGNED_MANAGED_IDENTITY_NAME: contoso-traders-mi-kv-access
+
+jobs:
+  provision-infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v3
+      - name: azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.SERVICEPRINCIPAL }}
+      # Add the logged-in service principal to the key vault access policy
+      - name: add service principal to kv access policy
+        uses: azure/CLI@v1
+        with:
+          failOnStderr: false
+          inlineScript: az keyvault set-policy -n ${{ env.KV_NAME }}${{ secrets.ENVIRONMENT }} --secret-permissions get list set --object-id $(az ad sp show --id $(az account show --query "user.name" -o tsv) --query "id" -o tsv)
+      # The AKS agent pool needs to be assigned the user-assigned managed identity created (which has kv access)
+      - name: assign user-assigned managed-identity to aks agentpool
+        uses: azure/CLI@v1
+        with:
+          failOnStderr: false
+          inlineScript: |
+            az vmss identity assign \
+              --identities $(az identity show -g ${{ env.RESOURCE_GROUP_NAME }} --name ${{ env.USER_ASSIGNED_MANAGED_IDENTITY_NAME }}${{ secrets.ENVIRONMENT }} --query "id" -o tsv) \
+              --ids $(az vmss list -g ${{ env.AKS_NODES_RESOURCE_GROUP_NAME }} --query "[0].id" -o tsv) \
+      # Seed the DBs and storage accounts
+      - name: seed products db
+        uses: azure/sql-action@v2
+        with:
+          failOnStderr: false
+          connection-string: Server=tcp:${{ env.PRODUCTS_DB_SERVER_NAME }}${{ secrets.ENVIRONMENT }}.database.windows.net,1433;Initial Catalog=${{ env.PRODUCTS_DB_NAME }};Persist Security Info=False;User ID=${{ env.PRODUCTS_DB_USER_NAME }};Password=${{ secrets.SQL_PASSWORD }};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+          path: ./src/ContosoTraders.Api.Products/Migration/productsdb.sql
+      - name: seed product image (product details)
+        uses: azure/CLI@v1
+        with:
+          failOnStderr: false
+          inlineScript: az storage blob sync --account-name '${{ env.PRODUCT_IMAGES_STORAGE_ACCOUNT_NAME }}${{ secrets.ENVIRONMENT }}' -c '${{ env.PRODUCT_DETAILS_CONTAINER_NAME }}' -s 'src/ContosoTraders.Api.Images/product-details'
+      - name: seed product image (product list)
+        uses: azure/CLI@v1
+        with:
+          inlineScript: az storage blob sync --account-name '${{ env.PRODUCT_IMAGES_STORAGE_ACCOUNT_NAME }}${{ secrets.ENVIRONMENT }}' -c '${{ env.PRODUCT_LIST_CONTAINER_NAME }}' -s 'src/ContosoTraders.Api.Images/product-list'
+      - name: purge CDN endpoint
+        uses: azure/CLI@v1
+        with:
+          failOnStderr: false
+          inlineScript: az cdn endpoint purge --no-wait --content-paths '/*' -n '${{ env.PRODUCTS_CDN_ENDPOINT_NAME }}${{ secrets.ENVIRONMENT }}' -g '${{ env.RESOURCE_GROUP_NAME }}' --profile-name '${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }}'
