@@ -45,7 +45,6 @@ var kvSecretNameCartsApiEndpoint = 'cartsApiEndpoint'
 var kvSecretNameCartsInternalApiEndpoint = 'cartsInternalApiEndpoint'
 var kvSecretNameCartsDbConnStr = 'cartsDbConnectionString'
 var kvSecretNameImagesEndpoint = 'imagesEndpoint'
-var kvSecretNameAppInsightsConnStr = 'appInsightsConnectionString'
 var kvSecretNameUiCdnEndpoint = 'uiCdnEndpoint'
 var kvSecretNameVnetAcaSubnetId = 'vnetAcaSubnetId'
 
@@ -124,8 +123,6 @@ var acrName = '${prefix}acr${suffix}'
 var loadTestSvcName = '${prefixHyphenated}-loadtest${suffix}'
 
 // application insights
-var logAnalyticsWorkspaceName = '${prefixHyphenated}-loganalytics${suffix}'
-var appInsightsName = '${prefixHyphenated}-ai${suffix}'
 
 // portal dashboard
 var portalDashboardName = '${prefixHyphenated}-dashboard${suffix}'
@@ -160,7 +157,6 @@ var privateDnsZoneVnetLinkName = '${prefixHyphenated}-privatednszone-vnet-link${
 
 // chaos studio
 var chaosKvSelectorId = guid('${prefixHyphenated}-chaos-kv-selector-id${suffix}')
-var chaosAksExperimentName = '${prefixHyphenated}-chaos-aks-experiment${suffix}'
 var chaosAksSelectorId = guid('${prefixHyphenated}-chaos-aks-selector-id${suffix}')
 
 // tags
