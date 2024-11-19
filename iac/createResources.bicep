@@ -159,7 +159,6 @@ var jumpboxVmShutdownScheduleTimezoneId = 'UTC'
 var privateDnsZoneVnetLinkName = '${prefixHyphenated}-privatednszone-vnet-link${suffix}'
 
 // chaos studio
-var chaosKvExperimentName = '${prefixHyphenated}-chaos-kv-experiment${suffix}'
 var chaosKvSelectorId = guid('${prefixHyphenated}-chaos-kv-selector-id${suffix}')
 var chaosAksExperimentName = '${prefixHyphenated}-chaos-aks-experiment${suffix}'
 var chaosAksSelectorId = guid('${prefixHyphenated}-chaos-aks-selector-id${suffix}')
@@ -343,15 +342,6 @@ resource kv_roledefinitionforchaosexp 'Microsoft.Authorization/roleDefinitions@2
   name: 'f25e0fa2-a7c8-4377-a976-54943a77a395'
 }
 
-resource kv_roleassignmentforchaosexp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: kv
-  name: guid(kv.id, chaoskvexperiment.id, kv_roledefinitionforchaosexp.id)
-  properties: {
-    roleDefinitionId: kv_roledefinitionforchaosexp.id
-    principalId: chaoskvexperiment.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
 
 resource userassignedmiforkvaccess 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: userAssignedMIForKVAccessName
