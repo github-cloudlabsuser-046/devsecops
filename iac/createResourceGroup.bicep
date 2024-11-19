@@ -33,7 +33,7 @@ param rgLocation string
 // tags
 var rgTags = {
   Product: '${rgName}${env}'
-  Environment: suffix
+  Environment: SUFFIX
 }
 
 // resource groups
