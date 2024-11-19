@@ -324,22 +324,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
   }
 }
 
-resource kv_roledefinitionforchaosexp 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: kv
-  // This is the Key Vault Contributor role
-  // See https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-contributor
-  name: 'f25e0fa2-a7c8-4377-a976-54943a77a395'
-}
 
-resource kv_roleassignmentforchaosexp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: kv
-  name: guid(kv.id, chaoskvexperiment.id, kv_roledefinitionforchaosexp.id)
-  properties: {
-    roleDefinitionId: kv_roledefinitionforchaosexp.id
-    principalId: chaoskvexperiment.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
 
 resource userassignedmiforkvaccess 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: userAssignedMIForKVAccessName
@@ -1228,22 +1213,8 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-10-02-preview' = {
   }
 }
 
-resource aks_roledefinitionforchaosexp 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: aks
-  // This is the Azure Kubernetes Service Cluster Admin Role
-  // See https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#azure-kubernetes-service-cluster-admin-role
-  name: '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8'
-}
 
-resource aks_roleassignmentforchaosexp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: aks
-  name: guid(aks.id, chaosaksexperiment.id, aks_roledefinitionforchaosexp.id)
-  properties: {
-    roleDefinitionId: aks_roledefinitionforchaosexp.id
-    principalId: chaosaksexperiment.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+
 
 //
 // virtual network
